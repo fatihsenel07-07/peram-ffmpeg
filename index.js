@@ -20,18 +20,18 @@ if (!fs.existsSync(TEMP_DIR)) {
 app.post('/watermark', async (req, res) => {
   let inputPath, outputPath;
   try {
-    const { video_url, text = 'PERAM' } = req.body;
-    console.log('[' + new Date().toISOString() + '] Request received for: ' + video_url);
+    const { video_url, is_demo = false } = req.body;
+    console.log(`[${new Date().toISOString()}] Request received for: ${video_url} (is_demo: ${is_demo})`);
 
     if (!video_url) {
       return res.status(400).json({ error: 'video_url is required' });
     }
 
     const id = uuidv4();
-    inputPath = path.join(TEMP_DIR, id + '_input.mp4');
-    outputPath = path.join(TEMP_DIR, id + '_output.mp4');
+    inputPath = path.join(TEMP_DIR, `${id}_input.mp4`);
+    outputPath = path.join(TEMP_DIR, `${id}_output.mp4`);
 
-    console.log('Downloading to ' + inputPath + '...');
+    console.log(`Downloading to ${inputPath}...`);
     const response = await axios({
       method: 'GET',
       url: video_url,
@@ -46,17 +46,24 @@ app.post('/watermark', async (req, res) => {
       writer.on('finish', resolve);
       writer.on('error', reject);
     });
-    console.log('Download complete. File size: ' + fs.statSync(inputPath).size + ' bytes');
+    console.log(`Download complete. File size: ${fs.statSync(inputPath).size} bytes`);
 
     const fontPath = '/usr/share/fonts/truetype/freefont/FreeSans.ttf';
     const hasFont = fs.existsSync(fontPath);
-    console.log('Using explicit font (' + fontPath + '): ' + hasFont);
     
-    const filter = hasFont 
-      ? 'drawtext=fontfile=' + fontPath + ':text=' + text + ':fontcolor=white@0.6:fontsize=36:x=w-tw-20:y=h-th-20'
-      : 'drawtext=text=' + text + ':fontcolor=white@0.6:fontsize=36:x=w-tw-20:y=h-th-20';
+    // Base font configuration if explicit font exists
+    const fontConfig = hasFont ? `fontfile='${fontPath}':` : '';
+    
+    let filter;
+    if (is_demo || is_demo === 'true') {
+      filter = `drawtext=${fontConfig}text='PERAM':fontsize=60:fontcolor=white@0.15:x=(w-tw)/2:y=(h-th)/2-40,` +
+               `drawbox=y=ih-50:w=iw:h=50:color=0xC41E2A@0.95:t=fill,` +
+               `drawtext=${fontConfig}text='16 saniye tam versiyon-filigransiz videolar icin paketlerimizi inceleyiniz':fontsize=14:fontcolor=white:x=(w-tw)/2:y=h-32`;
+    } else {
+      filter = `drawtext=${fontConfig}text='PERAM':fontsize=18:fontcolor=white@0.45:x=w-tw-20:y=h-th-20`;
+    }
 
-    console.log('Starting FFmpeg...');
+    console.log(`Starting FFmpeg with filter: ${filter}`);
     ffmpeg(inputPath)
       .videoFilters(filter)
       .outputOptions('-codec:a copy')
