@@ -1,7 +1,7 @@
 FROM node:20-bullseye-slim
 
 # Install ffmpeg
-RUN apt-get update && apt-get install -y ffmpeg && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y ffmpeg fonts-freefont-ttf fonts-liberation && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
