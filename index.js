@@ -10,6 +10,7 @@ const Iyzipay = require('iyzipay');
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 const PORT = process.env.PORT || 3000;
 const TEMP_DIR = path.join(__dirname, 'temp');
@@ -60,7 +61,7 @@ async function updateUserAfterPayment(userId, paymentId, packageId, amount, vide
       {
         user_id: userId,
         type: 'purchase',
-        credits: videosAdded,
+        amount: videosAdded,
         description: `${packageId} paketi - ${amount} TL - Payment: ${paymentId}`
       },
       {
@@ -73,7 +74,54 @@ async function updateUserAfterPayment(userId, paymentId, packageId, amount, vide
       }
     );
     console.log(`[DB] Payment logged in video_transactions`);
+
+    // 3. Update video balance
+    try {
+      const getBalance = await axios.get(
+        `${SUPABASE_URL}/rest/v1/user_videos?user_id=eq.${userId}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+            'apikey': SUPABASE_SERVICE_KEY
+          }
+        }
+      );
+      
+      if (getBalance.data && getBalance.data.length > 0) {
+        const currentTotal = getBalance.data[0].total_videos || 0;
+        await axios.patch(
+          `${SUPABASE_URL}/rest/v1/user_videos?user_id=eq.${userId}`,
+          { total_videos: currentTotal + videosAdded },
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+              'apikey': SUPABASE_SERVICE_KEY,
+              'Prefer': 'return=minimal'
+            }
+          }
+        );
+        console.log(`[DB] Updated user_videos for ${userId}, new total: ${currentTotal + videosAdded}`);
+      } else {
+        await axios.post(
+          `${SUPABASE_URL}/rest/v1/user_videos`,
+          { user_id: userId, total_videos: videosAdded, used_videos: 0, bonus_videos: 0 },
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+              'apikey': SUPABASE_SERVICE_KEY,
+              'Prefer': 'return=minimal'
+            }
+          }
+        );
+        console.log(`[DB] Inserted user_videos for ${userId}, new total: ${videosAdded}`);
+      }
+    } catch (balanceErr) {
+      console.error(`[DB] Error updating user_videos:`, balanceErr.response?.data || balanceErr.message);
+    }
   } catch (err) {
+
     console.error(`[DB] Error updating user after payment:`, err.response?.data || err.message);
   }
 }
@@ -233,19 +281,24 @@ app.post('/watermark', async (req, res) => {
     const fontPath = '/usr/share/fonts/truetype/freefont/FreeSans.ttf';
     const hasFont = fs.existsSync(fontPath);
     const fontConfig = hasFont ? `fontfile='${fontPath}':` : '';
+    const logoPath = path.join(__dirname, 'logo.png');
     
-    let filter;
+    let filterComplex;
+    let command = ffmpeg(inputPath);
+
     if (is_demo || is_demo === 'true') {
-      filter = `drawtext=${fontConfig}text='PERAM':fontsize=60:fontcolor=white@0.15:x=(w-tw)/2:y=(h-th)/2-40,` +
+      filterComplex = `[0:v]drawtext=${fontConfig}text='PERAM':fontsize=60:fontcolor=white@0.15:x=(w-tw)/2:y=(h-th)/2-40,` +
                `drawbox=y=ih-50:w=iw:h=50:color=0xC41E2A@0.95:t=fill,` +
-               `drawtext=${fontConfig}text='16 saniye tam versiyon-filigransiz videolar icin paketlerimizi inceleyiniz':fontsize=14:fontcolor=white:x=(w-tw)/2:y=h-32`;
+               `drawtext=${fontConfig}text='16 saniye tam versiyon-filigransiz videolar icin paketlerimizi inceleyiniz':fontsize=14:fontcolor=white:x=(w-tw)/2:y=h-32[out]`;
     } else {
-      filter = `drawtext=${fontConfig}text='PERAM':fontsize=18:fontcolor=white@0.45:x=w-tw-20:y=h-th-20`;
+      command = command.input(logoPath);
+      // Logo scaled to 50px width, placed to the left of the text
+      filterComplex = `[1:v]scale=50:-1[logo];[0:v][logo]overlay=W-w-140:H-h-25[bg];[bg]drawtext=${fontConfig}text='PERAM':fontsize=36:fontcolor=white@0.85:x=W-tw-20:y=H-th-32[out]`;
     }
 
-    console.log(`Starting FFmpeg with filter: ${filter}`);
-    ffmpeg(inputPath)
-      .videoFilters(filter)
+    console.log(`Starting FFmpeg with filter: ${filterComplex}`);
+    command
+      .complexFilter(filterComplex, 'out')
       .outputOptions('-codec:a copy')
       .output(outputPath)
       .on('start', (cmd) => console.log('FFmpeg started: ' + cmd))
@@ -281,4 +334,40 @@ app.post('/watermark', async (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`PERAM Microservice (FFmpeg + Payment) listening on port ${PORT}`);
+});
+
+// ==========================================
+// iyzico 3D Callback Endpoint
+// ==========================================
+app.post('/pay/callback', (req, res) => {
+  const { status, paymentId, conversationData, conversationId, mdStatus } = req.body;
+  const { user_id, package_id, amount, videos } = req.query;
+
+  console.log(`[${new Date().toISOString()}] 3D Callback received: status=${status}, paymentId=${paymentId}`);
+
+  if (status !== 'success') {
+    return res.redirect('https://peram.co/packages?payment=error');
+  }
+
+  // Create real payment request to finish 3D
+  const requestData = {
+    locale: Iyzipay.LOCALE.TR,
+    conversationId: conversationId,
+    paymentId: paymentId,
+    conversationData: conversationData
+  };
+
+  iyzipay.threedsPayment.create(requestData, async (err, result) => {
+    console.log(`[${new Date().toISOString()}] iyzico threedsPayment response:`, JSON.stringify(result || err, null, 2));
+    
+    if (err || result.status !== 'success') {
+      return res.redirect('https://peram.co/packages?payment=error');
+    }
+
+    // Payment finalized successfully
+    await updateUserAfterPayment(user_id, result.paymentId, package_id, parseFloat(amount), parseInt(videos, 10));
+
+    // Redirect to dashboard with success parameter
+    res.redirect('https://peram.co/dashboard?payment=success');
+  });
 });
