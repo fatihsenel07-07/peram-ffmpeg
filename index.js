@@ -292,8 +292,8 @@ app.post('/watermark', async (req, res) => {
                `drawtext=${fontConfig}text='16 saniye tam versiyon-filigransiz videolar icin paketlerimizi inceleyiniz':fontsize=14:fontcolor=white:x=(w-tw)/2:y=h-32[out]`;
     } else {
       command = command.input(logoPath);
-      // Logo scaled to 50px width, placed to the left of the text
-      filterComplex = `[1:v]scale=50:-1[logo];[0:v][logo]overlay=W-w-140:H-h-25[bg];[bg]drawtext=${fontConfig}text='PERAM':fontsize=36:fontcolor=white@0.85:x=W-tw-20:y=H-th-32[out]`;
+      // Logo scaled to 50px width, placed further left to avoid text overlap
+      filterComplex = `[1:v]scale=50:-1[logo];[0:v][logo]overlay=W-w-220:H-h-25[bg];[bg]drawtext=${fontConfig}text='PERAM':fontsize=36:fontcolor=white@0.85:x=W-tw-20:y=H-th-32[out]`;
     }
 
     console.log(`Starting FFmpeg with filter: ${filterComplex}`);
