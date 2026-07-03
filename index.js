@@ -247,6 +247,18 @@ app.get('/health', (req, res) => {
 // ==========================================
 // FFmpeg Watermark Endpoint
 // ==========================================
+
+// ==========================================
+// GET /watermark (For native mobile downloads)
+// ==========================================
+app.get('/watermark', async (req, res) => {
+  // Pass to the same logic
+  req.body = req.query;
+  app._router.handle(req, res, err => {
+    if (err) res.status(500).send(err);
+  });
+});
+
 app.post('/watermark', async (req, res) => {
   let inputPath, outputPath;
   try {
@@ -293,13 +305,13 @@ app.post('/watermark', async (req, res) => {
     } else {
       command = command.input(logoPath);
       // Logo scaled to 50px width, placed further left to avoid text overlap
-      filterComplex = `[1:v]scale=50:-1[logo];[0:v][logo]overlay=W-w-220:H-h-25[bg];[bg]drawtext=${fontConfig}text='PERAM':fontsize=36:fontcolor=white@0.85:x=W-tw-20:y=H-th-32[out]`;
+      filterComplex = `[1:v]scale=60:-1[logo];[0:v][logo]overlay=W-w-180:H-h-25[bg];[bg]drawtext=${fontConfig}text='PERAM':fontsize=36:fontcolor=white@0.85:x=W-tw-20:y=H-th-32[out]`;
     }
 
     console.log(`Starting FFmpeg with filter: ${filterComplex}`);
     command
       .complexFilter(filterComplex, 'out')
-      .outputOptions('-codec:a copy')
+      .outputOptions(['-map [out]', '-map 0:a?', '-codec:a copy', '-movflags faststart'])
       .output(outputPath)
       .on('start', (cmd) => console.log('FFmpeg started: ' + cmd))
       .on('end', () => {
