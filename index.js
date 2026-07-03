@@ -250,7 +250,13 @@ app.get('/health', (req, res) => {
 const handleWatermark = async (req, res) => {
   let inputPath, outputPath;
   try {
-    const { video_url, is_demo = false } = req.body;
+    let { video_url, is_demo = false } = req.body;
+    
+    // Normalize is_demo string to boolean
+    if (typeof is_demo === 'string') {
+      is_demo = is_demo === 'true';
+    }
+
     console.log(`[${new Date().toISOString()}] Watermark request for: ${video_url} (is_demo: ${is_demo})`);
 
     if (!video_url) {
@@ -286,7 +292,7 @@ const handleWatermark = async (req, res) => {
     let filterComplex;
     let command = ffmpeg(inputPath);
 
-    if (is_demo || is_demo === 'true') {
+    if (is_demo) {
       filterComplex = `[0:v]drawtext=${fontConfig}text='PERAM':fontsize=60:fontcolor=white@0.15:x=(w-tw)/2:y=(h-th)/2-40,` +
                `drawbox=y=ih-50:w=iw:h=50:color=0xC41E2A@0.95:t=fill,` +
                `drawtext=${fontConfig}text='16 saniye tam versiyon-filigransiz videolar icin paketlerimizi inceleyiniz':fontsize=14:fontcolor=white:x=(w-tw)/2:y=h-32[out]`;
