@@ -245,9 +245,7 @@ app.get('/health', (req, res) => {
 });
 
 // ==========================================
-// FFmpeg Watermark Endpoint
-// ==========================================
-
+// FFmpeg Watermark Handler
 // ==========================================
 const handleWatermark = async (req, res) => {
   let inputPath, outputPath;
@@ -294,7 +292,7 @@ const handleWatermark = async (req, res) => {
                `drawtext=${fontConfig}text='16 saniye tam versiyon-filigransiz videolar icin paketlerimizi inceleyiniz':fontsize=14:fontcolor=white:x=(w-tw)/2:y=h-32[out]`;
     } else {
       command = command.input(logoPath);
-      // Logo scaled to 50px width, placed further left to avoid text overlap
+      // Logo scaled to 60px width, placed further left to avoid text overlap
       filterComplex = `[1:v]scale=60:-1[logo];[0:v][logo]overlay=W-w-180:H-h-25[bg];[bg]drawtext=${fontConfig}text='PERAM':fontsize=36:fontcolor=white@0.85:x=W-tw-20:y=H-th-32[out]`;
     }
 
@@ -332,10 +330,12 @@ const handleWatermark = async (req, res) => {
     if (outputPath && fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
     if (!res.headersSent) res.status(500).json({ error: error.message });
   }
-});
+};
 
-app.listen(PORT, () => {
-  console.log(`PERAM Microservice (FFmpeg + Payment) listening on port ${PORT}`);
+app.post('/watermark', handleWatermark);
+app.get('/watermark', (req, res) => {
+  req.body = req.query;
+  handleWatermark(req, res);
 });
 
 // ==========================================
@@ -372,4 +372,8 @@ app.post('/pay/callback', (req, res) => {
     // Redirect to dashboard with success parameter
     res.redirect('https://peram.co/dashboard?payment=success');
   });
+});
+
+app.listen(PORT, () => {
+  console.log(`PERAM Microservice (FFmpeg + Payment) listening on port ${PORT}`);
 });
