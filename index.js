@@ -305,7 +305,7 @@ const handleWatermark = async (req, res) => {
     console.log(`Starting FFmpeg with filter: ${filterComplex}`);
     command
       .complexFilter(filterComplex, 'out')
-      .outputOptions(['-map', '[out]', '-map', '0:a?', '-c:a', 'copy', '-movflags', 'faststart'])
+      .outputOptions(['-map', '0:a?', '-c:a', 'copy', '-movflags', 'faststart'])
       .output(outputPath)
       .on('start', (cmd) => console.log('FFmpeg started: ' + cmd))
       .on('end', () => {
