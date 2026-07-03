@@ -249,17 +249,7 @@ app.get('/health', (req, res) => {
 // ==========================================
 
 // ==========================================
-// GET /watermark (For native mobile downloads)
-// ==========================================
-app.get('/watermark', async (req, res) => {
-  // Pass to the same logic
-  req.body = req.query;
-  app._router.handle(req, res, err => {
-    if (err) res.status(500).send(err);
-  });
-});
-
-app.post('/watermark', async (req, res) => {
+const handleWatermark = async (req, res) => {
   let inputPath, outputPath;
   try {
     const { video_url, is_demo = false } = req.body;
@@ -311,7 +301,7 @@ app.post('/watermark', async (req, res) => {
     console.log(`Starting FFmpeg with filter: ${filterComplex}`);
     command
       .complexFilter(filterComplex, 'out')
-      .outputOptions(['-map [out]', '-map 0:a?', '-codec:a copy', '-movflags faststart'])
+      .outputOptions(['-map', '[out]', '-map', '0:a?', '-c:a', 'copy', '-movflags', 'faststart'])
       .output(outputPath)
       .on('start', (cmd) => console.log('FFmpeg started: ' + cmd))
       .on('end', () => {
