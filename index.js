@@ -318,7 +318,7 @@ const handleWatermark = async (req, res) => {
       .on('error', (err, stdout, stderr) => {
         console.error('FFmpeg error:', err.message);
         console.error('FFmpeg stderr:', stderr);
-        res.status(500).json({ error: 'FFmpeg processing failed', details: err.message });
+        res.status(500).json({ error: 'FFmpeg processing failed', details: err.message, stderr: stderr });
         cleanup();
       })
       .run();
