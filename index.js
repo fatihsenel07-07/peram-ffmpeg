@@ -20,18 +20,19 @@ if (!fs.existsSync(TEMP_DIR)) {
 }
 
 // ==========================================
-// iyzico Configuration (Sandbox)
+// iyzico Configuration (Production)
 // ==========================================
 const iyzipay = new Iyzipay({
-  apiKey: process.env.IYZICO_API_KEY || 'sandbox-l73ZkqT4DjM5m0cYFZtKjC7PwvpRkH52',
-  secretKey: process.env.IYZICO_SECRET_KEY || 'sandbox-C5kwjGqn6GWHyjZyRvNEYr4bowQYuxHy',
-  uri: 'https://sandbox-api.iyzipay.com'
+  apiKey: process.env.IYZICO_API_KEY,
+  secretKey: process.env.IYZICO_SECRET_KEY,
+  uri: process.env.IYZICO_URI || 'https://api.iyzipay.com'
 });
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://uyftltkovmxahpjwmgvj.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5ZnRsdGtvdm14YWhwandtZ3ZqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MTQ2MjIwNSwiZXhwIjoyMDk3MDM4MjA1fQ.c4hy8DqybA72VcsAMxhJrvfWeM-OkMuOjH-c98dk20E';
 
 const PACKAGES = {
+  'test':         { name: "Test Paketi (1 TL)", price: "1.00", videos: 1 },
   'starter':      { name: "Başlangıç Paketi", price: "3999.00", videos: 14 },
   'professional': { name: "Büyüme Paketi",    price: "7999.00", videos: 35 },
   'enterprise':   { name: "Ajans Paketi",     price: "14499.00", videos: 70 }
