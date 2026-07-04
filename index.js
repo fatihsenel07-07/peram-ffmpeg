@@ -32,9 +32,9 @@ const SUPABASE_URL = process.env.SUPABASE_URL || 'https://uyftltkovmxahpjwmgvj.s
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5ZnRsdGtvdm14YWhwandtZ3ZqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MTQ2MjIwNSwiZXhwIjoyMDk3MDM4MjA1fQ.c4hy8DqybA72VcsAMxhJrvfWeM-OkMuOjH-c98dk20E';
 
 const PACKAGES = {
-  'starter':      { name: "Başlangıç Paketi", price: "3749.00", videos: 14 },
-  'professional': { name: "Büyüme Paketi",    price: "7749.00", videos: 35 },
-  'enterprise':   { name: "Ajans Paketi",     price: "14249.00", videos: 70 }
+  'starter':      { name: "Başlangıç Paketi", price: "3999.00", videos: 14 },
+  'professional': { name: "Büyüme Paketi",    price: "7999.00", videos: 35 },
+  'enterprise':   { name: "Ajans Paketi",     price: "14499.00", videos: 70 }
 };
 
 // Helper: Update user in Supabase via REST API
