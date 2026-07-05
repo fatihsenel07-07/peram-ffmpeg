@@ -170,6 +170,7 @@ app.post('/pay', async (req, res) => {
       basketId: `${user_id}_${package_id}_${Date.now()}`,
       paymentChannel: Iyzipay.PAYMENT_CHANNEL.WEB,
       paymentGroup: Iyzipay.PAYMENT_GROUP.PRODUCT,
+      callbackUrl: `https://peram-ffmpeg-production.up.railway.app/pay/callback?user_id=${user_id}&package_id=${package_id}&amount=${paidPrice}&videos=${pkg.videos}`,
       paymentCard: {
         cardHolderName: card_holder.name,
         cardNumber: card_holder.card_number.replace(/\s/g, ''),
@@ -202,8 +203,8 @@ app.post('/pay', async (req, res) => {
       ]
     };
 
-    iyzipay.payment.create(requestData, async (err, result) => {
-      console.log(`[${new Date().toISOString()}] iyzico response:`, JSON.stringify(result || err, null, 2));
+    iyzipay.threedsInitialize.create(requestData, async (err, result) => {
+      console.log(`[${new Date().toISOString()}] iyzico threedsInitialize response:`, JSON.stringify(result || err, null, 2));
       
       if (err) {
         return res.status(500).json({ 
@@ -213,19 +214,15 @@ app.post('/pay', async (req, res) => {
       }
 
       if (result.status === 'success') {
-        // Payment successful — update database
-        await updateUserAfterPayment(user_id, result.paymentId, package_id, paidPrice, pkg.videos);
-
+        // Return 3D HTML content to frontend
         return res.json({
           status: 'success',
-          payment_id: result.paymentId,
-          package_id: package_id,
-          videos: pkg.videos
+          htmlContent: Buffer.from(result.threeDSHtmlContent, 'base64').toString('utf-8')
         });
       } else {
         return res.status(400).json({
           status: 'error',
-          error: result.errorMessage || 'Ödeme başarısız',
+          error: result.errorMessage || 'Ödeme başlatılamadı',
           error_code: result.errorCode,
           error_group: result.errorGroup
         });
