@@ -35,7 +35,7 @@ const PACKAGES = {
   'starter':      { name: "Başlangıç Paketi", price: "3999.00", videos: 14 },
   'professional': { name: "Büyüme Paketi",    price: "7999.00", videos: 35 },
   'enterprise':   { name: "Ajans Paketi",     price: "14499.00", videos: 70 },
-  'test':         { name: "Sistem Testi",     price: "1.00", videos: 0 }
+  'test':         { name: "Sistem Testi",     price: "1.00", videos: 1 }
 };
 
 // Helper: Update user in Supabase via REST API
