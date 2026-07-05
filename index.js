@@ -132,7 +132,7 @@ async function updateUserAfterPayment(userId, paymentId, packageId, amount, vide
 // ==========================================
 app.post('/pay', async (req, res) => {
   try {
-    const { user_id, package_id, card_holder, email } = req.body;
+    const { user_id, package_id, card_holder, email, billingInfo } = req.body;
 
     console.log(`[${new Date().toISOString()}] Payment request: user=${user_id}, package=${package_id}`);
 
@@ -147,17 +147,29 @@ app.post('/pay', async (req, res) => {
 
     // Handle discounted prices from frontend
     const paidPrice = card_holder.paid_price || pkg.price;
+    
+    const isCorporate = billingInfo?.billing_type === 'kurumsal';
+    const contactName = isCorporate ? billingInfo.company_name : (billingInfo?.full_name || card_holder.name);
+    const splitName = (billingInfo?.full_name || card_holder.name || 'User').split(' ');
 
     const buyer = {
       id: user_id,
-      name: card_holder.name.split(' ')[0] || 'User',
-      surname: card_holder.name.split(' ').slice(1).join(' ') || 'User',
-      email: email || 'customer@peram.co',
-      identityNumber: '11111111111',
-      registrationAddress: 'Istanbul, Turkey',
+      name: splitName[0] || 'User',
+      surname: splitName.slice(1).join(' ') || 'User',
+      email: billingInfo?.email || email || 'customer@peram.co',
+      identityNumber: billingInfo?.tc_vkn || '11111111111',
+      registrationAddress: billingInfo?.address || 'Istanbul, Turkey',
       ip: req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1',
-      city: 'Istanbul',
+      city: billingInfo?.city || 'Istanbul',
       country: 'Turkey',
+    };
+
+    const targetAddress = {
+      contactName: contactName || 'User',
+      city: billingInfo?.city || 'Istanbul',
+      country: 'Turkey',
+      address: billingInfo?.address || 'Istanbul, Turkey',
+      zipCode: '34000'
     };
 
     const requestData = {
@@ -180,18 +192,8 @@ app.post('/pay', async (req, res) => {
         registerCard: '0'
       },
       buyer: buyer,
-      shippingAddress: {
-        contactName: card_holder.name,
-        city: 'Istanbul',
-        country: 'Turkey',
-        address: 'Istanbul, Turkey'
-      },
-      billingAddress: {
-        contactName: card_holder.name,
-        city: 'Istanbul',
-        country: 'Turkey',
-        address: 'Istanbul, Turkey'
-      },
+      shippingAddress: targetAddress,
+      billingAddress: targetAddress,
       basketItems: [
         {
           id: package_id,
